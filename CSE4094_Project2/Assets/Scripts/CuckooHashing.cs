@@ -11,7 +11,7 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
     public static int tableIndex;
     public static int cellIndex;
 
-    private void Awake()
+    private void Start()
     {
         EventManager.Subscribe(this);
     }
@@ -57,6 +57,7 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
         tableIndex = tI;
         cellIndex = cI;
         UIScript.word = w;
+        print(tableIndex + ", " + cellIndex);
         EventManager.SendEvent(EventName.INSERT_DONE);
     }
     public void insertT1(int index, string word)

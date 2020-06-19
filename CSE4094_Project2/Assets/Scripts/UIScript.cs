@@ -20,12 +20,9 @@ public class UIScript : MonoBehaviour, IEventManagerListener
 
     public static string word;
 
-    private void Awake()
-    {
-        EventManager.Subscribe(this);
-    }
     void Start()
     {
+        EventManager.Subscribe(this);
         for (int i = 0; i < 5; i++)
         {
             List<Transform> cells = new List<Transform>();
@@ -36,9 +33,6 @@ public class UIScript : MonoBehaviour, IEventManagerListener
             }
             cellList.Add(cells);
         }
-
-        TableNumberI(TableCount, CellCount);
-        CellNumberI(TableCount, CellCount);
 
         TableNumberInput.onValueChanged.AddListener((value) =>
         {
@@ -91,8 +85,7 @@ public class UIScript : MonoBehaviour, IEventManagerListener
     public void SetTablesInactive(int count)
     {
         foreach (List<Transform> cells in cellList.GetRange(5 - count, count))
-        {
-            print(cells[0].parent.name);
+        {            
             SetCellsInactive(30, count);
         }
         foreach (Transform table in tablesList.GetRange(5 - count, count))
