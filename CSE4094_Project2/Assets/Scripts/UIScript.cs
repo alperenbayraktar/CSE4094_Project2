@@ -20,9 +20,13 @@ public class UIScript : MonoBehaviour, IEventManagerListener
 
     public static string word;
 
-    void Start()
+    public void Awake()
     {
         EventManager.Subscribe(this);
+        Debug.Log("UIScript in");
+    }
+    void Start()
+    {        
         for (int i = 0; i < 5; i++)
         {
             List<Transform> cells = new List<Transform>();
@@ -38,7 +42,7 @@ public class UIScript : MonoBehaviour, IEventManagerListener
         {
             if (string.IsNullOrEmpty(value)) return;
             TableCount = int.Parse(value);
-            TableNumberI(TableCount, CellCount);
+            TableNumberI(TableCount, CellCount, false);
         });
         CellNumberInput.onValueChanged.AddListener((value) =>
         {
@@ -48,39 +52,52 @@ public class UIScript : MonoBehaviour, IEventManagerListener
         });
         WordInput.onValueChanged.AddListener((value) =>
         {
+            cellList[CuckooHashing.searchTableIndex][CuckooHashing.searchCellIndex].GetComponent<Image>().color = Color.white;
             if (string.IsNullOrEmpty(value)) return;
             word = value;
-            InsertB();
+            WordI();
         });
+        TableNumberI(TableCount, CellCount, false);
+        CellNumberI(TableCount, CellCount);        
     }
 
     public void InsertB()
-    {
+    {        
         EventManager.SendEvent(EventName.INSERT_CLICKED);
     }
     public void DeleteB()
     {
-
+        EventManager.SendEvent(EventName.DELETE_CLICKED);
     }
     public void ResetB()
     {
-
+        foreach(List<Transform> table in cellList)
+        {
+            foreach(Transform cell in table)
+            {
+                cell.GetChild(0).GetComponent<Text>().text = null;
+            }
+        }
+        TableNumberI(TableCount, CellCount, true);
     }
-    public void TableNumberI(int TableCount, int CellCount)
+    public void TableNumberI(int TableCount, int CellCount, bool reset)
     {
+        if(!reset) ResetB();
         EventManager.SendEvent(EventName.CREATE_TABLES);
         SetTablesActive(TableCount, CellCount);
-        SetTablesInactive(5 - TableCount);
+        SetTablesInactive(5 - TableCount);        
     }
     public void CellNumberI(int TableCount, int CellCount)
     {
+        ResetB();
         EventManager.SendEvent(EventName.CREATE_TABLES);
         SetCellsActive(CellCount, TableCount);
         SetCellsInactive(30 - CellCount, 5);
+        ResetB();
     }
     public void WordI()
     {
-
+        EventManager.SendEvent(EventName.SEARCH_ON);
     }
     public void SetTablesInactive(int count)
     {
@@ -127,7 +144,16 @@ public class UIScript : MonoBehaviour, IEventManagerListener
     {
         if (EventName.INSERT_DONE == eventName)
         {
+            Debug.Log("Inserted: " + word);
             cellList[CuckooHashing.tableIndex][CuckooHashing.cellIndex].GetChild(0).GetComponent<Text>().text = word;
+        }
+        if (EventName.DELETE_DONE == eventName)
+        {
+            cellList[CuckooHashing.searchTableIndex][CuckooHashing.searchCellIndex].GetChild(0).GetComponent<Text>().text = null;
+        }
+        if (EventName.CHANGE_COLOR == eventName)
+        {
+            cellList[CuckooHashing.searchTableIndex][CuckooHashing.searchCellIndex].GetComponent<Image>().color = Color.green;
         }
     }
 }

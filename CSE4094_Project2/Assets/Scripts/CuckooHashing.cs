@@ -11,9 +11,10 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
     public static int tableIndex;
     public static int cellIndex;
 
-    private void Start()
+    private void Awake()
     {
         EventManager.Subscribe(this);
+        Debug.Log("Cuckoo in");
     }
     private void CreateTables(int count, int size)
     {
@@ -31,22 +32,23 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
     private int HashFunction(int table, string word)
     {
         int result = 0;
+        Debug.Log(word);
         int hash = word.GetHashCode();
         switch (table)
         {
-            case 1:                
+            case 0:                
                 result = Math.Abs(hash % TableSize);
                 break;
-            case 2:
+            case 1:
                 result = Math.Abs(hash * 31 % TableSize);
                 break;
-            case 3:
+            case 2:
                 result = Math.Abs(hash * 83 % TableSize);
                 break;
-            case 4:
+            case 3:
                 result = Math.Abs((hash * 31 + 7) % TableSize);
                 break;
-            case 5:
+            case 4:
                 result = Math.Abs((hash * 83 + 31) % TableSize);
                 break;
         }
@@ -69,7 +71,7 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
         }
         else
         {
-            insertT2(HashFunction(2, word), Tables[0][index]);
+            insertT2(HashFunction(1, word), Tables[0][index]);
             Tables[0][index] = word;
             SetStuff(0, index, word);
         }
@@ -84,7 +86,8 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
         }
         else
         {
-            insertT3(HashFunction(3, word), word);
+            if(Tables.Count > 2) insertT3(HashFunction(2, word), word);
+            else insertT1(HashFunction(0, word), word);
             Tables[1][index] = word;
             SetStuff(1, index, word);
         }       
@@ -98,7 +101,8 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
         }
         else
         {
-            insertT4(HashFunction(4, word), word);
+            if (Tables.Count > 3) insertT4(HashFunction(3, word), word);
+            else insertT1(HashFunction(0, word), word);
             Tables[2][index] = word;
             SetStuff(2, index, word);
         }
@@ -112,7 +116,8 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
         }
         else
         {
-            insertT5(HashFunction(5, word), word);
+            if (Tables.Count > 4) insertT5(HashFunction(4, word), word);
+            else insertT1(HashFunction(0, word), word);
             Tables[3][index] = word;
             SetStuff(3, index, word);
         }
@@ -126,15 +131,16 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
         }
         else
         {
-            insertT1(HashFunction(1, word), word);
+            insertT1(HashFunction(0, word), word);
             Tables[4][index] = word;
             SetStuff(4, index, word);
         }
     }
-
+    public static int searchTableIndex;
+    public static int searchCellIndex;
     private bool searh(string word)
     {
-        int i = 1;
+        int i = 0;
         bool flag = false;
         foreach(string[] table in Tables)
         {
@@ -143,14 +149,23 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
             {
                 flag = true;
                 Debug.Log("Word is in Table " + i);
-                i++;
+                searchTableIndex = i;
+                searchCellIndex = index;                
             }
+            i++;
         }
         if (!flag)
         {
             Debug.Log("Could not find.");
         }
         return flag;
+    }
+
+    private void DeleteCell(int tableIndex, int cellIndex)
+    {
+        Tables[tableIndex][cellIndex] = null;
+        print(tableIndex + ", " + cellIndex);
+        EventManager.SendEvent(EventName.DELETE_DONE);
     }
 
     void IEventManagerListener.OnEventRecieved(string eventName)
@@ -160,13 +175,33 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
             string word = UIScript.word;
             if (!searh(word))
             {
-                insertT1(HashFunction(1, word), word);
+                insertT1(HashFunction(0, word), word);
             }            
         }
         if (EventName.CREATE_TABLES == eventName)
         {
             TableSize = UIScript.CellCount;
             CreateTables(UIScript.TableCount, UIScript.CellCount);
+        }
+        if(EventName.DELETE_CLICKED == eventName)
+        {
+            string word = UIScript.word;
+            if (searh(word))
+            {
+                DeleteCell(searchTableIndex, searchCellIndex);
+            }
+            else
+            {
+                Debug.Log("Item does not exist.");
+            }
+        }
+        if(EventName.SEARCH_ON == eventName)
+        {
+            string word = UIScript.word;
+            if (searh(word))
+            {
+                EventManager.SendEvent(EventName.CHANGE_COLOR);
+            }
         }
     }
 }
