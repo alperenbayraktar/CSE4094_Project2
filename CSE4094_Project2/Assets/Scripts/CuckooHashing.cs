@@ -15,6 +15,8 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
     public Text LoopText;
     public Text InfoText;
     public InputField WaitSec;
+    public static int CollisionCount;
+    public Text CollText;
     private void Awake()
     {
         EventManager.Subscribe(this);
@@ -82,6 +84,8 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
         cellIndex = cI;
         UIScript.word = w;
         InfoText.text = w + " has been inserted to table: " + tI + ", Cell: " + cI;
+        UIScript.Sliders[tI].GetComponent<Text>().text = "Table" + (tI + 1) + "Load Factor: " + CalculateLoad(Tables[tI]) + "%";
+        UIScript.Sliders[tI].GetChild(0).GetComponent<Slider>().value = CalculateLoad(Tables[tI]);
         EventManager.SendEvent(EventName.INSERT_DONE);
     }
     int stuck = 0;
@@ -102,18 +106,19 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
         else
         {
             stuck++;
+            CollisionCount += 1;
+            CollText.text = "Collision Count: " + CollisionCount;
             SetLoopText(stuck, false);
             if (stuck == 50)
             {
-                SetLoopText(stuck, false);
+                SetLoopText(stuck, false);                
                 stuck = 0;
                 yield break;
             }
             string overwritedWord = Tables[0][index];            
             SetStuff(0, index, word);
             yield return new WaitForSeconds(sec);
-            StartCoroutine(insertT2(HashFunction(1, overwritedWord), overwritedWord));
-            
+            StartCoroutine(insertT2(HashFunction(1, overwritedWord), overwritedWord));            
         }
     }
     IEnumerator insertT2(int index, string word)
@@ -127,6 +132,8 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
         else
         {
             stuck++;
+            CollisionCount += 1;
+            CollText.text = "Collision Count: " + CollisionCount;
             SetLoopText(stuck, false);
             if (stuck == 50)
             {
@@ -161,10 +168,12 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
         else
         {
             stuck++;
+            CollisionCount += 1;
+            CollText.text = "Collision Count: " + CollisionCount;
             SetLoopText(stuck, false);
             if (stuck == 50)
             {
-                SetLoopText(stuck, false);                
+                SetLoopText(stuck, false);
                 stuck = 0;
                 yield break;
             }
@@ -195,6 +204,8 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
         else
         {
             stuck++;
+            CollisionCount += 1;
+            CollText.text = "Collision Count: " + CollisionCount;
             SetLoopText(stuck, false);
             if (stuck == 50)
             {
@@ -229,6 +240,8 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
         else
         {
             stuck++;
+            CollisionCount += 1;
+            CollText.text = "Collision Count: " + CollisionCount;
             SetLoopText(stuck, false);
             if (stuck == 50)
             {
@@ -266,11 +279,27 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
         }
         return flag;
     }
-
+    public float CalculateLoad(string [] Table)
+    {
+        float loadFactor;
+        float filled = 0;
+        float total = 0;
+        foreach(string cell in Table)
+        {
+            total++;
+            if(cell != null)
+            {
+                filled++;
+            }
+        }
+        loadFactor = filled / total;
+        return loadFactor * 100;
+    }
     private void DeleteCell(int tableIndex, int cellIndex)
     {
         Tables[tableIndex][cellIndex] = null;
-        print(tableIndex + ", " + cellIndex);
+        UIScript.Sliders[tableIndex].GetComponent<Text>().text = "Table" + (tableIndex + 1) + "Load Factor: " + CalculateLoad(Tables[tableIndex]) + "%";
+        UIScript.Sliders[tableIndex].GetChild(0).GetComponent<Slider>().value = CalculateLoad(Tables[tableIndex]);
         EventManager.SendEvent(EventName.DELETE_DONE);
     }
 

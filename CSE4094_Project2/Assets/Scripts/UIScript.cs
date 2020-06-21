@@ -11,8 +11,14 @@ public class UIScript : MonoBehaviour, IEventManagerListener
     public InputField CellNumberInput;
     public InputField WordInput;
     public RectTransform Tables;
+    public RectTransform SliderPanel;
+    public Text CollText;
+    public Button Exit;
+
     public List<Transform> tablesList = new List<Transform>();
     public List<List<Transform>> cellList = new List<List<Transform>>();
+
+    public static List<Transform> Sliders = new List<Transform>();
 
     public static int TableCount = 2;
     public static int CellCount = 10;
@@ -26,6 +32,10 @@ public class UIScript : MonoBehaviour, IEventManagerListener
     }
     void Start()
     {        
+        for (int i = 2; i < 7; i++)
+        {
+            Sliders.Add(SliderPanel.GetChild(i));
+        }
         for (int i = 0; i < 5; i++)
         {
             List<Transform> cells = new List<Transform>();
@@ -84,7 +94,8 @@ public class UIScript : MonoBehaviour, IEventManagerListener
     }
 
     public void InsertB()
-    {        
+    {
+        word = WordInput.text;
         EventManager.SendEvent(EventName.INSERT_CLICKED);
     }
     public void DeleteB()
@@ -102,7 +113,19 @@ public class UIScript : MonoBehaviour, IEventManagerListener
         }
         TableNumberI(TableCount, CellCount, true);
         CellNumberI(TableCount, CellCount, true);
-        if(reset) InfoText.text = "Reset.";
+        if (reset)
+        {
+            int i = 1;
+            foreach (Transform slider in Sliders)
+            {
+                slider.GetComponent<Text>().text = "Table" + (i) + "Load Factor: " + 0 + "%";
+                slider.GetChild(0).GetComponent<Slider>().value = 0;                
+                i++;
+            }
+            CuckooHashing.CollisionCount = 0;
+            CollText.text = "Collision Count: 0";
+            InfoText.text = "Reset.";
+        }
     }
     public void TableNumberI(int TableCount, int CellCount, bool reset)
     {
@@ -131,6 +154,12 @@ public class UIScript : MonoBehaviour, IEventManagerListener
         foreach (Transform table in tablesList.GetRange(5 - count, count))
         {
             table.gameObject.SetActive(false);
+        }
+        foreach (Transform slider in Sliders.GetRange(5 - count, count))
+        {
+            slider.GetComponent<Text>().text = "Table" + (5 - count) + "Load Factor: " + 0 + "%";
+            slider.GetChild(0).GetComponent<Slider>().value = 0;
+            slider.gameObject.SetActive(false);
         }
     }
     public void SetCellsInactive(int count, int tableCount)
@@ -162,6 +191,14 @@ public class UIScript : MonoBehaviour, IEventManagerListener
                 cell.gameObject.SetActive(true);
             }
         }
+        int i = 1;
+        foreach (Transform slider in Sliders.GetRange(0, tableCount))
+        {
+            slider.GetComponent<Text>().text = "Table" + (i) + "Load Factor: " + 0 + "%";
+            slider.GetChild(0).GetComponent<Slider>().value = 0;
+            slider.gameObject.SetActive(true);
+            i++;
+        }
     }
     void IEventManagerListener.OnEventRecieved(string eventName)
     {
@@ -183,8 +220,8 @@ public class UIScript : MonoBehaviour, IEventManagerListener
             cellList[CuckooHashing.searchTableIndex][CuckooHashing.searchCellIndex].GetComponent<Image>().color = Color.green;
         }
     }
-    IEnumerator Waiter(float sec)
+    public void ExitApp()
     {
-        yield return new WaitForSeconds(sec);
+        Application.Quit();
     }
 }
