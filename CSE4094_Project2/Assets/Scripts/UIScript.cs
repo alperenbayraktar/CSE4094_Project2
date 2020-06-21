@@ -10,7 +10,6 @@ public class UIScript : MonoBehaviour, IEventManagerListener
     public InputField TableNumberInput;
     public InputField CellNumberInput;
     public InputField WordInput;
-
     public RectTransform Tables;
     public List<Transform> tablesList = new List<Transform>();
     public List<List<Transform>> cellList = new List<List<Transform>>();
@@ -19,11 +18,11 @@ public class UIScript : MonoBehaviour, IEventManagerListener
     public static int CellCount = 10;
 
     public static string word;
-
+    public float sec;
+    public Text InfoText;
     public void Awake()
     {
         EventManager.Subscribe(this);
-        Debug.Log("UIScript in");
     }
     void Start()
     {        
@@ -42,23 +41,46 @@ public class UIScript : MonoBehaviour, IEventManagerListener
         {
             if (string.IsNullOrEmpty(value)) return;
             TableCount = int.Parse(value);
+            if (TableCount > 5)
+            {
+                TableCount = 5;
+                InfoText.text = "Table Count set to 5.\nTable Count should be 1<x<5.";
+            }
+            else if (TableCount < 1)
+            {
+                TableCount = 1;
+                InfoText.text = "Table Count set to 1.\nTable Count should be 1<x<5.";
+            }
+            else InfoText.text = "Table Count set to " + TableCount;
             TableNumberI(TableCount, CellCount, false);
         });
         CellNumberInput.onValueChanged.AddListener((value) =>
         {
             if (string.IsNullOrEmpty(value)) return;
             CellCount = int.Parse(value);
-            CellNumberI(TableCount, CellCount);
+            if (CellCount > 30)
+            {
+                CellCount = 30;
+                InfoText.text = "Cell Count set to 30.\nCell Count should be 10<x<30.";
+            }
+            else if (CellCount < 10)
+            {
+                CellCount = 10;
+                InfoText.text = "Cell Count set to 10.\nCell Count should be 10<x<30.";
+            }
+            else InfoText.text = "Cell Count set to " + CellCount;
+            CellNumberI(TableCount, CellCount, false);
         });
         WordInput.onValueChanged.AddListener((value) =>
         {
+            word = value;
             cellList[CuckooHashing.searchTableIndex][CuckooHashing.searchCellIndex].GetComponent<Image>().color = Color.white;
             if (string.IsNullOrEmpty(value)) return;
-            word = value;
             WordI();
-        });
+        });        
         TableNumberI(TableCount, CellCount, false);
-        CellNumberI(TableCount, CellCount);        
+        CellNumberI(TableCount, CellCount, false);
+        InfoText.text = "";
     }
 
     public void InsertB()
@@ -69,7 +91,7 @@ public class UIScript : MonoBehaviour, IEventManagerListener
     {
         EventManager.SendEvent(EventName.DELETE_CLICKED);
     }
-    public void ResetB()
+    public void ResetB(bool reset)
     {
         foreach(List<Transform> table in cellList)
         {
@@ -79,21 +101,22 @@ public class UIScript : MonoBehaviour, IEventManagerListener
             }
         }
         TableNumberI(TableCount, CellCount, true);
+        CellNumberI(TableCount, CellCount, true);
+        if(reset) InfoText.text = "Reset.";
     }
     public void TableNumberI(int TableCount, int CellCount, bool reset)
     {
-        if(!reset) ResetB();
+        if(!reset) ResetB(false);        
         EventManager.SendEvent(EventName.CREATE_TABLES);
         SetTablesActive(TableCount, CellCount);
         SetTablesInactive(5 - TableCount);        
     }
-    public void CellNumberI(int TableCount, int CellCount)
+    public void CellNumberI(int TableCount, int CellCount, bool reset)
     {
-        ResetB();
+        if (!reset) ResetB(false);
         EventManager.SendEvent(EventName.CREATE_TABLES);
         SetCellsActive(CellCount, TableCount);
         SetCellsInactive(30 - CellCount, 5);
-        ResetB();
     }
     public void WordI()
     {
@@ -143,17 +166,25 @@ public class UIScript : MonoBehaviour, IEventManagerListener
     void IEventManagerListener.OnEventRecieved(string eventName)
     {
         if (EventName.INSERT_DONE == eventName)
-        {
-            Debug.Log("Inserted: " + word);
+        {            
             cellList[CuckooHashing.tableIndex][CuckooHashing.cellIndex].GetChild(0).GetComponent<Text>().text = word;
+            
         }
         if (EventName.DELETE_DONE == eventName)
         {
-            cellList[CuckooHashing.searchTableIndex][CuckooHashing.searchCellIndex].GetChild(0).GetComponent<Text>().text = null;
+            InfoText.text = cellList[CuckooHashing.searchTableIndex][CuckooHashing.searchCellIndex].GetChild(0).GetComponent<Text>().text +
+                " has been deleted from table: " + CuckooHashing.searchTableIndex + ", Cell: " + CuckooHashing.searchCellIndex;
+            cellList[CuckooHashing.searchTableIndex][CuckooHashing.searchCellIndex].GetChild(0).GetComponent<Text>().text = null;            
         }
         if (EventName.CHANGE_COLOR == eventName)
         {
+            InfoText.text = cellList[CuckooHashing.searchTableIndex][CuckooHashing.searchCellIndex].GetChild(0).GetComponent<Text>().text +
+                " has been found in table: " + CuckooHashing.searchTableIndex + ", Cell: " + CuckooHashing.searchCellIndex;
             cellList[CuckooHashing.searchTableIndex][CuckooHashing.searchCellIndex].GetComponent<Image>().color = Color.green;
         }
+    }
+    IEnumerator Waiter(float sec)
+    {
+        yield return new WaitForSeconds(sec);
     }
 }

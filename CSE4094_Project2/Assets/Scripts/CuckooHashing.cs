@@ -2,27 +2,40 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class CuckooHashing : MonoBehaviour, IEventManagerListener
 {
     public int TableSize;
     public List<string[]> Tables = new List<string[]>();
-
+    public float sec;
     public static int tableIndex;
     public static int cellIndex;
 
+    public Text LoopText;
+    public Text InfoText;
+    public InputField WaitSec;
     private void Awake()
     {
         EventManager.Subscribe(this);
-        Debug.Log("Cuckoo in");
+    }
+    private void Start()
+    {
+        SetLoopText(0, true);
+        WaitSec.onValueChanged.AddListener((value) =>
+        {
+            if (string.IsNullOrEmpty(value)) return;
+            sec = float.Parse(value);
+        });
     }
     private void CreateTables(int count, int size)
     {
+        SetLoopText(stuck, true);
         Tables.Clear();
         if (count > 5) count = 5;
         if (count < 1) count = 1;
         if (size > 30) size = 30;
-        if (size < 1) size = 10;
+        if (size < 10) size = 10;
         for (int i = 0; i< count; i++)
         {
             string[] Table = new string[size];
@@ -32,8 +45,16 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
     private int HashFunction(int table, string word)
     {
         int result = 0;
-        Debug.Log(word);
-        int hash = word.GetHashCode();
+        int hash;
+        var isNumeric = int.TryParse(word, out _);
+        if (!isNumeric)
+        {
+            hash = word.GetHashCode();
+        }
+        else
+        {
+            hash = Int32.Parse(word);
+        }
         switch (table)
         {
             case 0:                
@@ -56,84 +77,169 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
     }
     void SetStuff(int tI, int cI, string w)
     {
+        Tables[tI][cI] = w;
         tableIndex = tI;
         cellIndex = cI;
         UIScript.word = w;
-        print(tableIndex + ", " + cellIndex);
+        InfoText.text = w + " has been inserted to table: " + tI + ", Cell: " + cI;
         EventManager.SendEvent(EventName.INSERT_DONE);
     }
-    public void insertT1(int index, string word)
+    int stuck = 0;
+    public void SetLoopText(int stuck, bool reset)
+    {
+        LoopText.text = "Loop: " + stuck + "/50 ";
+        if (stuck == 50) LoopText.text += "\nInsert failed.";
+        if (reset) LoopText.text = "Loop: 0/50 ";
+    }
+    IEnumerator insertT1(int index, string word)
     {
         if(Tables[0][index] == null)
         {
-            Tables[0][index] = word;
+            SetLoopText(stuck, false);
+            stuck = 0;
             SetStuff(0, index, word);
         }
         else
         {
-            insertT2(HashFunction(1, word), Tables[0][index]);
-            Tables[0][index] = word;
+            stuck++;
+            SetLoopText(stuck, false);
+            if (stuck == 50)
+            {
+                SetLoopText(stuck, false);
+                stuck = 0;
+                yield break;
+            }
+            string overwritedWord = Tables[0][index];            
             SetStuff(0, index, word);
+            yield return new WaitForSeconds(sec);
+            StartCoroutine(insertT2(HashFunction(1, overwritedWord), overwritedWord));
+            
         }
     }
-    private void insertT2(int index, string word)
+    IEnumerator insertT2(int index, string word)
     {
         if (Tables[1][index] == null)
         {
-            print(word + ", " + index);
-            Tables[1][index] = word;
+            SetLoopText(stuck, false);
+            stuck = 0;
             SetStuff(1, index, word);
         }
         else
         {
-            if(Tables.Count > 2) insertT3(HashFunction(2, word), word);
-            else insertT1(HashFunction(0, word), word);
-            Tables[1][index] = word;
-            SetStuff(1, index, word);
+            stuck++;
+            SetLoopText(stuck, false);
+            if (stuck == 50)
+            {
+                SetLoopText(stuck, false);
+                stuck = 0;
+                yield break;
+            }
+            if (Tables.Count > 2)
+            {
+                string overwritedWord = Tables[1][index];
+                SetStuff(1, index, word);
+                yield return new WaitForSeconds(sec);
+                StartCoroutine(insertT3(HashFunction(2, overwritedWord), overwritedWord));
+            }
+            else
+            {
+                string overwritedWord = Tables[1][index];
+                SetStuff(1, index, word);
+                yield return new WaitForSeconds(sec);
+                StartCoroutine(insertT1(HashFunction(0, overwritedWord), overwritedWord));
+            }
         }       
     }
-    private void insertT3(int index, string word)
+    IEnumerator insertT3(int index, string word)
     {
         if (Tables[2][index] == null)
         {
-            Tables[2][index] = word;
+            SetLoopText(stuck, false);
+            stuck = 0;
             SetStuff(2, index, word);
         }
         else
         {
-            if (Tables.Count > 3) insertT4(HashFunction(3, word), word);
-            else insertT1(HashFunction(0, word), word);
-            Tables[2][index] = word;
-            SetStuff(2, index, word);
+            stuck++;
+            SetLoopText(stuck, false);
+            if (stuck == 50)
+            {
+                SetLoopText(stuck, false);                
+                stuck = 0;
+                yield break;
+            }
+            if (Tables.Count > 3)
+            {
+                string overwritedWord = Tables[2][index];
+                SetStuff(2, index, word);
+                yield return new WaitForSeconds(sec);
+                StartCoroutine(insertT4(HashFunction(3, overwritedWord), overwritedWord));
+            }
+            else
+            {
+                string overwritedWord = Tables[2][index];
+                SetStuff(2, index, word);
+                yield return new WaitForSeconds(sec);
+                StartCoroutine(insertT1(HashFunction(0, overwritedWord), overwritedWord));
+            }
         }
     }
-    private void insertT4(int index, string word)
+    IEnumerator insertT4(int index, string word)
     {
         if (Tables[3][index] == null)
         {
-            Tables[3][index] = word;
+            SetLoopText(stuck, false);
+            stuck = 0;
             SetStuff(3, index, word);
         }
         else
         {
-            if (Tables.Count > 4) insertT5(HashFunction(4, word), word);
-            else insertT1(HashFunction(0, word), word);
-            Tables[3][index] = word;
-            SetStuff(3, index, word);
+            stuck++;
+            SetLoopText(stuck, false);
+            if (stuck == 50)
+            {
+                SetLoopText(stuck, false);
+                stuck = 0;
+                yield break;
+            }
+            if (Tables.Count > 4)
+            {
+                string overwritedWord = Tables[3][index];
+                SetStuff(3, index, word);
+                yield return new WaitForSeconds(sec);
+                StartCoroutine(insertT5(HashFunction(4, overwritedWord), overwritedWord));                
+            }
+            else
+            {
+                string overwritedWord = Tables[3][index];
+                SetStuff(3, index, word);
+                yield return new WaitForSeconds(sec);
+                StartCoroutine(insertT1(HashFunction(0, overwritedWord), overwritedWord));
+            }
         }
     }
-    private void insertT5(int index, string word)
+    IEnumerator insertT5(int index, string word)
     {
         if (Tables[4][index] == null)
         {
-            Tables[4][index] = word;
+            SetLoopText(stuck, false);
+            stuck = 0;            
             SetStuff(4, index, word);
         }
         else
         {
-            insertT1(HashFunction(0, word), word);
-            Tables[4][index] = word;
+            stuck++;
+            SetLoopText(stuck, false);
+            if (stuck == 50)
+            {
+                SetLoopText(stuck, false);
+                stuck = 0;
+                yield break;
+            }
+            yield return new WaitForSeconds(sec);
+            string overwritedWord = Tables[4][index];
             SetStuff(4, index, word);
+            StartCoroutine(insertT1(HashFunction(0, overwritedWord), overwritedWord));            
         }
     }
     public static int searchTableIndex;
@@ -148,7 +254,7 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
             if (string.Compare(table[index], word) == 0)
             {
                 flag = true;
-                Debug.Log("Word is in Table " + i);
+                InfoText.text = "Word is in Table: " + i + ", Cell: " + index;
                 searchTableIndex = i;
                 searchCellIndex = index;                
             }
@@ -156,7 +262,7 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
         }
         if (!flag)
         {
-            Debug.Log("Could not find.");
+            InfoText.text = "Could not find " + word;
         }
         return flag;
     }
@@ -175,7 +281,7 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
             string word = UIScript.word;
             if (!searh(word))
             {
-                insertT1(HashFunction(0, word), word);
+                StartCoroutine(insertT1(HashFunction(0, word), word));
             }            
         }
         if (EventName.CREATE_TABLES == eventName)
@@ -192,7 +298,7 @@ public class CuckooHashing : MonoBehaviour, IEventManagerListener
             }
             else
             {
-                Debug.Log("Item does not exist.");
+                InfoText.text = "Item does not exist.";
             }
         }
         if(EventName.SEARCH_ON == eventName)
